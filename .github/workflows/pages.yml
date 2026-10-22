@@ -1,0 +1,53 @@
+name: Publish Shaikha Academy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shaikha-academy-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out app
+        uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check sw.js
+          node --check strokes.js
+          node --check trace-engine.js
+          node --check sound.js
+          node --check voice-clips.js
+          node --check media-range.js
+          node --test test/*.test.js
+      - name: Prepare public app files
+        run: |
+          mkdir _site
+          cp index.html app.js style.css strokes.js trace-engine.js sw.js manifest.webmanifest icon.svg icon.png .nojekyll _site/
+          cp sound.js voice-clips.js media-range.js _site/
+          cp -r assets _site/
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload app
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Publish app
+        id: deployment
+        uses: actions/deploy-pages@v4
